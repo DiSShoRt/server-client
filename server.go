@@ -4,12 +4,14 @@ import (
 	"net"
 	"strings"
 )
+
 const (
 	// конец сообщения
-	END1 = "12345678"
+	END1 = "123456789"
 )
-// соединения 
-var conections = make(map[net.Conn]bool) 
+
+// соединения
+var conections = make(map[net.Conn]bool)
 
 func main() {
 	// стартуем сервер
@@ -18,16 +20,16 @@ func main() {
 		panic(err)
 	}
 	// заакрываем соединение
-    defer serv.Close()
-    // открываем соединенине в цикле
+	defer serv.Close()
+	// открываем соединенине в цикле
 	for {
-		con, err :=  serv.Accept()
+		con, err := serv.Accept()
 		if err != nil {
 			break
 		}
 		go Hundle(con)
 	}
-} 
+}
 
 func Hundle(conn net.Conn) {
 	conections[conn] = true
@@ -36,27 +38,30 @@ func Hundle(conn net.Conn) {
 		//буфер
 		buffer = make([]byte, 256)
 	)
-	close: for {
-    for {
-		// обнуляем строчку
-		massage = ""
-	len, err := conn.Read(buffer)
-		if err != nil  || len == 0 { 
-			break close
-			panic(err)
+close:
+	for {
+		for {
+			// обнуляем строчку
+			massage = ""
+			len, err := conn.Read(buffer)
+			if err != nil || len == 0 {
+				break close
+				panic(err)
+			}
+			//читаем буфер до конца
+			massage = string(buffer[:len])
+			if strings.HasSuffix(massage, END1) {
+				massage = strings.TrimSuffix(massage, END1)
+				break
+			}
 		}
-		//читаем буфер до конца	
-		massage = string(buffer[:len])
-		if  strings.HasSuffix(massage, END1) {
-			massage = strings.TrimSuffix(massage,END1)
-			break
+		// перебираем соединения
+		for c := range conections {
+			if c == conn {
+				continue
+			}
+			c.Write([]byte(strings.ToUpper(massage) + END1))
 		}
 	}
-	// перебираем соединения 
-	for c := range conections {
-		if c == conn { continue }
-		c.Write([]byte(strings.ToUpper(massage) + END1))
-	}
-}
-delete(conections,conn)
+	delete(conections, conn)
 }
